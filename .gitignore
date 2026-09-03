@@ -1,0 +1,5 @@
+#Python gitignore file
+
+*.pyc
+*.pyo
+*.pyd

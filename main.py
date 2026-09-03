@@ -16,7 +16,7 @@ class LeafNode:
 class DecisionTree:
     def __init__(self, max_depth=None):
         self.max_depth = max_depth
-        self.root: Optional[InternalNode] = None
+        self.root: Optional[InternalNode | LeafNode] = None
 
     def entropy(self, target_attribute):
         value_counts = target_attribute.value_counts()
@@ -24,7 +24,19 @@ class DecisionTree:
         return -np.sum(probabilities * np.log2(probabilities + 1e-9))
 
     def information_gain(self, S, A, target_attribute):
-        return self.entropy(target_attribute) - sum((len(S[S[A] == v]) / len(S)) * self.entropy(target_attribute[S[A] == v]) for v in S[A].unique())
+        #return self.entropy(target_attribute) - sum((len(S[S[A] == v]) / len(S)) * self.entropy(target_attribute[S[A] == v]) for v in S[A].unique())
+        #Temporary split for debugging
+        parent_entropy = self.entropy(target_attribute)
+        weighted_entropy = 0
+
+        for value in S[A].unique():
+            subset = S[S[A] == value]
+            weight = len(subset) / len(S)
+            weighted_entropy += weight * self.entropy(target_attribute[S[A] == value])
+
+        gain = parent_entropy - weighted_entropy
+        return gain
+
 
     def choose_best_attribute(self, examples, target_attribute, attributes):
         best_gain = -1
