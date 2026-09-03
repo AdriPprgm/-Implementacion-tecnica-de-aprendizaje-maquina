@@ -1,4 +1,5 @@
 """
+REALIZADO POR CLAUDE
 Visualizador de árboles de decisión.
 
 No depende de tu implementación de DecisionTree/ID3 -- solo espera que
@@ -8,21 +9,7 @@ los nodos tengan esta forma (la misma que ya definiste):
                    .branches   (dict: {valor_del_atributo: nodo_hijo})
 
     LeafNode:      .value      (la clase predicha)
-
-Uso típico desde tu propio script:
-
-    from decision_tree import DecisionTree   # tu módulo
-    from visualize_tree import visualize_tree
-    import pandas as pd
-
-    df = pd.read_csv("tennis.csv")
-    target = "PlayTennis"
-    attributes = set(df.columns) - {target, "Day"}
-
-    tree = DecisionTree()
-    tree.root = tree.ID3(df, target, attributes)
-
-    visualize_tree(tree.root, title="Árbol - PlayTennis", save_path="tree.png")
+    REALIZADO POR CLAUDE
 """
 
 import matplotlib.pyplot as plt

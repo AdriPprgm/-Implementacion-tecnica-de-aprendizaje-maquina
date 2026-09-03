@@ -1,75 +1,47 @@
 #type: ignore
-
-import numpy as np
-import pandas as pd
-from pyparsing import Optional
-
-class InternalNode:
-    def __init__(self, attribute, branches: dict):
-        self.attribute = attribute
-        self.branches = branches
-
-class LeafNode:
-    def __init__(self, value):
-        self.value = value
-
-class DecisionTree:
-    def __init__(self, max_depth=None):
-        self.max_depth = max_depth
-        self.root: Optional[InternalNode | LeafNode] = None
-
-    def entropy(self, target_attribute):
-        value_counts = target_attribute.value_counts()
-        probabilities = value_counts / len(target_attribute)
-        return -np.sum(probabilities * np.log2(probabilities + 1e-9))
-
-    def information_gain(self, S, A, target_attribute):
-        #return self.entropy(target_attribute) - sum((len(S[S[A] == v]) / len(S)) * self.entropy(target_attribute[S[A] == v]) for v in S[A].unique())
-        #Temporary split for debugging
-        parent_entropy = self.entropy(target_attribute)
-        weighted_entropy = 0
-
-        for value in S[A].unique():
-            subset = S[S[A] == value]
-            weight = len(subset) / len(S)
-            weighted_entropy += weight * self.entropy(target_attribute[S[A] == value])
-
-        gain = parent_entropy - weighted_entropy
-        return gain
-
-
-    def choose_best_attribute(self, examples, target_attribute, attributes):
-        best_gain = -1
-        best_attribute = None
-        for i in attributes:
-            gain = self.information_gain(examples, i, examples[target_attribute])
-            if gain > best_gain:
-                best_gain = gain
-                best_attribute = i
-        return best_attribute
-
-    def ID3(self, examples, target_attribute, attributes, depth=0):
-        if len(set(examples[target_attribute])) == 1:
-            return LeafNode(examples[target_attribute].iloc[0])
-        if not attributes or (self.max_depth is not None and depth >= self.max_depth):
-            majority_class = examples[target_attribute].mode()[0]
-            return LeafNode(majority_class)
-        else:
-            A = self.choose_best_attribute(examples, target_attribute, attributes)
-            decision_node = InternalNode(A, {})
-            for value in examples[A].unique():
-                examples_v = examples[examples[A] == value]
-                decision_node.branches[value] = self.ID3(examples_v, target_attribute, attributes - {A}, depth + 1)
-        return decision_node
-
 from visualize_tree import visualize_tree
 import pandas as pd
+from decisiontree import DecisionTree
+import matplotlib.pyplot as plt
 
-df = pd.read_csv("tennis.csv")
-target = "PlayTennis"
-attributes = set(df.columns) - {target, "Day"}
+df = pd.read_csv("car.csv", index_col=0) #Le digo que la primera columna es el índice, no es una característica.
 
-tree = DecisionTree()
-tree.root = tree.ID3(df, target, attributes)
+target = "Class"
+attributes = set(df.columns) - {target}
+
+train = df.sample(frac=0.7, random_state=42)
+test = df.drop(train.index)
+
+tree = DecisionTree(max_depth=5)
+tree.root = tree.ID3(train, target, attributes)
+
+predictions = tree.predict(test)
+accuracy = (predictions.values == test[target].values).mean()
+print(f"Overall Accuracy: {accuracy:.2%}")
+
+#Bloque de codigo hecho por copilot para calcular la precisión por clase y mostrar la matriz de confusión.
+#Acurracy by class
+class_accuracies = {}
+for cls in test[target].unique():
+    cls_mask = test[target] == cls
+    class_accuracy = (predictions[cls_mask].values == test[target][cls_mask].values).mean()
+    class_accuracies[cls] = class_accuracy
+
+for cls, acc in class_accuracies.items():
+    print(f"Accuracy for {cls}: {acc:.2%}")
 
 visualize_tree(tree.root, title="PLACEHOLDER", save_path="mi_tree.png")
+
+#Plot the confusion matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+# predictions and test[target] from your existing code
+labels = sorted(df[target].unique())  # consistent class order, e.g. ['acc', 'good', 'unacc', 'vgood']
+
+cm = confusion_matrix(test[target].values, predictions.values, labels=labels)
+
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+disp.plot(cmap="Blues", xticks_rotation=45, values_format="d")
+plt.title("Decision Tree Confusion Matrix — Car Evaluation")
+plt.tight_layout()
+plt.savefig("confusion_matrix.png", dpi=150)
+plt.show()
